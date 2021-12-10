@@ -22,7 +22,7 @@ type MBtiles struct {
 	timestamp time.Time
 }
 
-// FindMBTiles recursively finds all mbtiles files within a given path.
+// FindMBtiles recursively finds all mbtiles files within a given path.
 func FindMBtiles(path string) ([]string, error) {
 	var filenames []string
 	err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
@@ -228,8 +228,8 @@ func (db *MBtiles) GetTileFormat() TileFormat {
 	return db.format
 }
 
-// TimeStamp returns the time stamp of the mbtiles file.
-func (db *MBtiles) TimeStamp() time.Time {
+// Timestamp returns the time stamp of the mbtiles file.
+func (db *MBtiles) Timestamp() time.Time {
 	return db.timestamp
 }
 

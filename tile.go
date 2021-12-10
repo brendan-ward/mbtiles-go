@@ -16,6 +16,7 @@ import (
 //   * ZLIB
 type TileFormat uint8
 
+// TileFormat enum values
 const (
 	UNKNOWN TileFormat = iota // UNKNOWN TileFormat cannot be determined from first few bytes of tile
 	GZIP                      // encoding = gzip

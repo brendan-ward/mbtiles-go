@@ -1,8 +1,10 @@
 package mbtiles
 
 import (
+	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func Test_FindMBtiles(t *testing.T) {
@@ -23,7 +25,7 @@ func Test_FindMBtiles(t *testing.T) {
 	for _, expectedFilename := range expected {
 		for _, filename := range filenames {
 			if filename == expectedFilename {
-				found += 1
+				found++
 			}
 		}
 	}
@@ -143,7 +145,7 @@ func Test_ReadMetadata(t *testing.T) {
 }
 
 func Test_ReadMetadata_contents(t *testing.T) {
-	db, err := Open("./testdata/geography-class-png.mbtiles")
+	db, _ := Open("./testdata/geography-class-png.mbtiles")
 
 	expectedMetadata := map[string]interface{}{
 		"name":        "Geography Class",
@@ -206,5 +208,18 @@ func Test_ReadTile(t *testing.T) {
 			t.Error("ReadTile returned different number of bytes than expected for tile:", tc.z, tc.x, tc.y, "got:", len(data))
 			continue
 		}
+	}
+}
+
+func Test_Timestamp(t *testing.T) {
+	filename := "./testdata/geography-class-png.mbtiles"
+	stat, _ := os.Stat(filename)
+	expected := stat.ModTime().Round(time.Second)
+
+	db, _ := Open(filename)
+	defer db.Close()
+
+	if db.Timestamp() != expected {
+		t.Error("Timestamp does not match value from os.Stat, got:", db.Timestamp())
 	}
 }
