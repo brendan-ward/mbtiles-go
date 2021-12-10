@@ -229,7 +229,7 @@ func (db *MBtiles) GetTileFormat() TileFormat {
 }
 
 // Timestamp returns the time stamp of the mbtiles file.
-func (db *MBtiles) Timestamp() time.Time {
+func (db *MBtiles) GetTimestamp() time.Time {
 	return db.timestamp
 }
 

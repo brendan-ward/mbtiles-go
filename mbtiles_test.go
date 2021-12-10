@@ -219,7 +219,7 @@ func Test_Timestamp(t *testing.T) {
 	db, _ := Open(filename)
 	defer db.Close()
 
-	if db.Timestamp() != expected {
-		t.Error("Timestamp does not match value from os.Stat, got:", db.Timestamp())
+	if db.GetTimestamp() != expected {
+		t.Error("Timestamp does not match value from os.Stat, got:", db.GetTimestamp())
 	}
 }
