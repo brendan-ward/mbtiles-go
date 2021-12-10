@@ -3,7 +3,7 @@
 A simple Go-based mbtiles reader.
 
 ![Build Status](https://github.com/brendan-ward/mbtiles-go/actions/workflows/test.yml/badge.svg)
-[![Coverage Status](https://coveralls.io/repos/github/brendan-ward/mbtiles-go/badge.svg?branch=master)](https://coveralls.io/github/brendan-ward/mbtiles-go?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/brendan-ward/mbtiles-go/badge.svg?branch=main)](https://coveralls.io/github/brendan-ward/mbtiles-go?branch=main)
 [![GoDoc](https://godoc.org/github.com/brendan-ward/mbtiles-go?status.svg)](http://godoc.org/github.com/brendan-ward/mbtiles-go)
 [![Go Report Card](https://goreportcard.com/badge/github.com/brendan-ward/mbtiles-go)](https://goreportcard.com/report/github.com/brendan-ward/mbtiles-go)
 
