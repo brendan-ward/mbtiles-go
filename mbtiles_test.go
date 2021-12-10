@@ -211,7 +211,17 @@ func Test_ReadTile(t *testing.T) {
 	}
 }
 
-func Test_Timestamp(t *testing.T) {
+func Test_GetFilename(t *testing.T) {
+	filename := "./testdata/geography-class-png.mbtiles"
+	db, _ := Open(filename)
+	defer db.Close()
+
+	if db.GetFilename() != filename {
+		t.Error("GetFilename does not match expected value, got:", db.GetFilename())
+	}
+}
+
+func Test_GetTimestamp(t *testing.T) {
 	filename := "./testdata/geography-class-png.mbtiles"
 	stat, _ := os.Stat(filename)
 	expected := stat.ModTime().Round(time.Second)

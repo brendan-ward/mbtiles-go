@@ -17,6 +17,7 @@ import (
 
 // MBtiles provides a basic handle for an mbtiles file.
 type MBtiles struct {
+	filename  string
 	pool      *sqlitex.Pool
 	format    TileFormat
 	timestamp time.Time
@@ -68,6 +69,7 @@ func Open(path string) (*MBtiles, error) {
 	}
 
 	db := &MBtiles{
+		filename:  path,
 		pool:      pool,
 		timestamp: stat.ModTime().Round(time.Second),
 	}
@@ -221,6 +223,10 @@ func (db *MBtiles) ReadMetadata() (map[string]interface{}, error) {
 		metadata["maxzoom"] = q2.ColumnInt(1)
 	}
 	return metadata, nil
+}
+
+func (db *MBtiles) GetFilename() string {
+	return db.filename
 }
 
 // GetTileFormat returns the TileFormat of the mbtiles file.
