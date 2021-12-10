@@ -2,10 +2,13 @@ package mbtiles
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"crawshaw.io/sqlite"
@@ -92,7 +95,7 @@ func Open(path string) (*MBtiles, error) {
 
 // Close closes a MBtiles file
 func (db *MBtiles) Close() {
-	if db != nil && db.pool != nil {
+	if db.pool != nil {
 		db.pool.Close()
 	}
 }
@@ -140,6 +143,84 @@ func (db *MBtiles) ReadTile(z int64, x int64, y int64, data *[]byte) error {
 	}
 
 	return nil
+}
+
+// ReadMetadata reads the metadata table into a map, casting their values into
+// the appropriate type
+func (db *MBtiles) ReadMetadata() (map[string]interface{}, error) {
+	if db == nil || db.pool == nil {
+		return nil, errors.New("Cannot read tile from closed mbtiles database")
+	}
+
+	con, err := db.getConnection(nil)
+	if err != nil {
+		return nil, err
+	}
+	defer db.closeConnection(con)
+
+	var (
+		key   string
+		value string
+	)
+	metadata := make(map[string]interface{})
+
+	query, err := con.Prepare("select name, value from metadata where value is not ''")
+	if err != nil {
+		return nil, err
+	}
+	defer query.Reset()
+
+	for {
+		hasRow, err := query.Step()
+		if err != nil {
+			return nil, err
+		}
+		if !hasRow {
+			break
+		}
+
+		key = query.GetText("name")
+		value = query.GetText("value")
+
+		switch key {
+		case "maxzoom", "minzoom":
+			metadata[key], err = strconv.Atoi(value)
+			if err != nil {
+				return nil, fmt.Errorf("cannot read metadata item %s: %v", key, err)
+			}
+		case "bounds", "center":
+			metadata[key], err = parseFloats(value)
+			if err != nil {
+				return nil, fmt.Errorf("cannot read metadata item %s: %v", key, err)
+			}
+		case "json":
+			err = json.Unmarshal([]byte(value), &metadata)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse JSON metadata item: %v", err)
+			}
+		default:
+			metadata[key] = value
+		}
+	}
+
+	// Supplement missing values by inferring from available data
+	_, hasMinZoom := metadata["minzoom"]
+	_, hasMaxZoom := metadata["maxzoom"]
+	if !(hasMinZoom && hasMaxZoom) {
+		q2, err := con.Prepare("select min(zoom_level), max(zoom_level) from tiles")
+		if err != nil {
+			return nil, err
+		}
+		defer q2.Reset()
+		_, err = q2.Step()
+		if err != nil {
+			return nil, err
+		}
+
+		metadata["minzoom"] = q2.ColumnInt(0)
+		metadata["maxzoom"] = q2.ColumnInt(1)
+	}
+	return metadata, nil
 }
 
 // GetTileFormat returns the TileFormat of the mbtiles file.
@@ -230,4 +311,20 @@ func getTileFormat(con *sqlite.Conn) (TileFormat, error) {
 	}
 
 	return format, nil
+}
+
+// parseFloats converts a commma-delimited string of floats to a slice of
+// float64 and returns it and the first error that was encountered.
+// Example: "1.5,2.1" => [1.5, 2.1]
+func parseFloats(str string) ([]float64, error) {
+	split := strings.Split(str, ",")
+	var out []float64
+	for _, v := range split {
+		value, err := strconv.ParseFloat(strings.TrimSpace(v), 64)
+		if err != nil {
+			return out, fmt.Errorf("could not parse %q to floats: %v", str, err)
+		}
+		out = append(out, value)
+	}
+	return out, nil
 }
