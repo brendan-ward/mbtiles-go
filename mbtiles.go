@@ -74,7 +74,7 @@ func Open(path string) (*MBtiles, error) {
 		timestamp: stat.ModTime().Round(time.Second),
 	}
 
-	con, err := db.getConnection(nil)
+	con, err := db.getConnection(context.TODO())
 	defer db.closeConnection(con)
 	if err != nil {
 		return nil, err
@@ -82,11 +82,16 @@ func Open(path string) (*MBtiles, error) {
 
 	err = validateRequiredTables(con)
 	if err != nil {
+		db.closeConnection(con)
+		con = nil
 		return nil, err
 	}
 
 	format, err := getTileFormat(con)
 	if err != nil {
+		db.closeConnection(con)
+		con = nil
+		defer db.Close()
 		return nil, err
 	}
 
@@ -109,7 +114,7 @@ func (db *MBtiles) ReadTile(z int64, x int64, y int64, data *[]byte) error {
 		return errors.New("Cannot read tile from closed mbtiles database")
 	}
 
-	con, err := db.getConnection(nil)
+	con, err := db.getConnection(context.TODO())
 	defer db.closeConnection(con)
 	if err != nil {
 		return err
@@ -154,7 +159,7 @@ func (db *MBtiles) ReadMetadata() (map[string]interface{}, error) {
 		return nil, errors.New("Cannot read tile from closed mbtiles database")
 	}
 
-	con, err := db.getConnection(nil)
+	con, err := db.getConnection(context.TODO())
 	defer db.closeConnection(con)
 	if err != nil {
 		return nil, err
