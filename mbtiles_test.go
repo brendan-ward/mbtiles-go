@@ -71,10 +71,10 @@ func Test_OpenMBtiles_invalid(t *testing.T) {
 		path string
 		err  string
 	}{
-		{path: "invalid.mbtiles", err: "Missing one or more required tables: tiles, metadata"},
-		{path: "invalid-tile-format.mbtiles", err: "Could not detect tile format"},
-		{path: "incomplete.mbtiles", err: "Refusing to open mbtiles file with associated -journal file"},
-		{path: "does-not-exist.mbtiles", err: "Path does not exist"},
+		{path: "invalid.mbtiles", err: "missing one or more required tables: tiles, metadata"},
+		{path: "invalid-tile-format.mbtiles", err: "could not detect tile format"},
+		{path: "incomplete.mbtiles", err: "refusing to open mbtiles file with associated -journal file"},
+		{path: "does-not-exist.mbtiles", err: "path does not exist"},
 	}
 	for _, tc := range tests {
 		db, err := Open("./testdata/" + tc.path)

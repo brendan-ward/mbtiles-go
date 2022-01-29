@@ -53,14 +53,34 @@ func Open(path string) (*MBtiles, error) {
 	stat, err := os.Stat(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("Path does not exist: %q", path)
+			return nil, fmt.Errorf("path does not exist: %q", path)
 		}
 		return nil, err
 	}
 
 	// there must not be a corresponding *-journal file (tileset is still being created)
 	if _, err := os.Stat(path + "-journal"); err == nil {
-		return nil, fmt.Errorf("Refusing to open mbtiles file with associated -journal file (incomplete tileset)")
+		return nil, fmt.Errorf("refusing to open mbtiles file with associated -journal file (incomplete tileset)")
+	}
+
+	// open a single connection first while we are verifying the database
+	// since there are issues closing out a connection pool on error here
+	con, err := sqlite.OpenConn(path, sqlite.SQLITE_OPEN_READONLY|sqlite.SQLITE_OPEN_NOMUTEX)
+	if con != nil {
+		defer con.Close()
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	err = validateRequiredTables(con)
+	if err != nil {
+		return nil, err
+	}
+
+	format, err := getTileFormat(con)
+	if err != nil {
+		return nil, err
 	}
 
 	pool, err := sqlitex.Open(path, sqlite.SQLITE_OPEN_READONLY|sqlite.SQLITE_OPEN_NOMUTEX, 10)
@@ -72,30 +92,8 @@ func Open(path string) (*MBtiles, error) {
 		filename:  path,
 		pool:      pool,
 		timestamp: stat.ModTime().Round(time.Second),
+		format:    format,
 	}
-
-	con, err := db.getConnection(context.TODO())
-	defer db.closeConnection(con)
-	if err != nil {
-		return nil, err
-	}
-
-	err = validateRequiredTables(con)
-	if err != nil {
-		db.closeConnection(con)
-		con = nil
-		return nil, err
-	}
-
-	format, err := getTileFormat(con)
-	if err != nil {
-		db.closeConnection(con)
-		con = nil
-		defer db.Close()
-		return nil, err
-	}
-
-	db.format = format
 
 	return db, nil
 }
@@ -111,7 +109,7 @@ func (db *MBtiles) Close() {
 // data will be nil if the tile does not exist in the database
 func (db *MBtiles) ReadTile(z int64, x int64, y int64, data *[]byte) error {
 	if db == nil || db.pool == nil {
-		return errors.New("Cannot read tile from closed mbtiles database")
+		return errors.New("cannot read tile from closed mbtiles database")
 	}
 
 	con, err := db.getConnection(context.TODO())
@@ -156,7 +154,7 @@ func (db *MBtiles) ReadTile(z int64, x int64, y int64, data *[]byte) error {
 // the appropriate type
 func (db *MBtiles) ReadMetadata() (map[string]interface{}, error) {
 	if db == nil || db.pool == nil {
-		return nil, errors.New("Cannot read tile from closed mbtiles database")
+		return nil, errors.New("cannot read tile from closed mbtiles database")
 	}
 
 	con, err := db.getConnection(context.TODO())
@@ -249,7 +247,7 @@ func (db *MBtiles) GetTimestamp() time.Time {
 func (db *MBtiles) getConnection(ctx context.Context) (*sqlite.Conn, error) {
 	con := db.pool.Get(ctx)
 	if con == nil {
-		return nil, errors.New("Connection could not be opened")
+		return nil, errors.New("connection could not be opened")
 	}
 	return con, nil
 }
@@ -277,7 +275,7 @@ func validateRequiredTables(con *sqlite.Conn) error {
 	}
 
 	if query.ColumnInt32(0) < 2 {
-		return errors.New("Missing one or more required tables: tiles, metadata")
+		return errors.New("missing one or more required tables: tiles, metadata")
 	}
 	return nil
 }
@@ -302,7 +300,7 @@ func getTileFormat(con *sqlite.Conn) (TileFormat, error) {
 
 	r := query.ColumnReader(0)
 	if r.Size() < 8 {
-		return UNKNOWN, errors.New("Tile data too small to determine tile format")
+		return UNKNOWN, errors.New("tile data too small to determine tile format")
 	}
 
 	magicWord := make([]byte, 8)
