@@ -75,10 +75,10 @@ func Open(path string) (*MBtiles, error) {
 	}
 
 	con, err := db.getConnection(nil)
+	defer db.closeConnection(con)
 	if err != nil {
 		return nil, err
 	}
-	defer db.closeConnection(con)
 
 	err = validateRequiredTables(con)
 	if err != nil {
@@ -110,10 +110,10 @@ func (db *MBtiles) ReadTile(z int64, x int64, y int64, data *[]byte) error {
 	}
 
 	con, err := db.getConnection(nil)
+	defer db.closeConnection(con)
 	if err != nil {
 		return err
 	}
-	defer db.closeConnection(con)
 
 	query, err := con.Prepare("select tile_data from tiles where zoom_level = $z and tile_column = $x and tile_row = $y")
 	if err != nil {
@@ -155,10 +155,10 @@ func (db *MBtiles) ReadMetadata() (map[string]interface{}, error) {
 	}
 
 	con, err := db.getConnection(nil)
+	defer db.closeConnection(con)
 	if err != nil {
 		return nil, err
 	}
-	defer db.closeConnection(con)
 
 	var (
 		key   string
