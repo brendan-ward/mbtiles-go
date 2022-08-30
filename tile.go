@@ -130,8 +130,15 @@ func detectTileSize(format TileFormat, data []byte) (uint32, error) {
 			}
 
 			return uint32(binary.LittleEndian.Uint16(data[21:23])&0x1ff) + 1, nil
+
+		case bytes.HasPrefix(encType, []byte("VP8X")): // Alpha
+			// width is in 24 bits out of bytes 24-26
+			if len(data) < 26 {
+				return 0, errors.New("insufficient length to detect webp image size")
+			}
+
+			return uint32(binary.LittleEndian.Uint16(data[24:27])) + 1, nil
 		}
-		// TODO: VP8X currently not handled
 	}
 
 	return 0, nil

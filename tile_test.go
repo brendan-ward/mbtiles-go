@@ -29,6 +29,11 @@ func Test_DetectTileFormat(t *testing.T) {
 			data: "52494646a43f0100574542505650384c983f01002f8f014b", format: WEBP,
 		},
 		{
+			// Alpha webp
+			// first 26 bytes of https://www.gstatic.com/webp/gallery3/1_webp_a.webp
+			data: "52494646ce46000057454250565038580a000000100000008f01", format: WEBP,
+		},
+		{
 			// PBF, first 10 bytes of tile 0/0/0 in world_cities.mbtiles
 			// is detected as a GZIP and handled as a PBF later
 			data: "1f8b0800000000000203", format: GZIP,
@@ -76,6 +81,11 @@ func Test_DetectTilesize(t *testing.T) {
 			// Lossless webp
 			// first 24 bytes of https://www.gstatic.com/webp/gallery3/1_webp_ll.webp
 			format: WEBP, data: "52494646a43f0100574542505650384c983f01002f8f014b", tilesize: 400,
+		},
+		{
+			// Alpha webp
+			// first 26 bytes of https://www.gstatic.com/webp/gallery3/1_webp_a.webp
+			format: WEBP, data: "52494646ce46000057454250565038580a000000100000008f01", tilesize: 400,
 		},
 		{
 			// PBF, first 10 bytes of tile 0/0/0 in world_cities.mbtiles
