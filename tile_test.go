@@ -2,8 +2,6 @@ package mbtiles
 
 import (
 	"encoding/hex"
-	"fmt"
-	"os"
 	"testing"
 )
 
@@ -84,12 +82,6 @@ func Test_DetectTilesize(t *testing.T) {
 			format: PBF, data: "1f8b0800000000000203", tilesize: 512,
 		},
 	}
-
-	data, _ := os.ReadFile("/users/bcward/downloads/blank256.png")
-	fmt.Println(hex.EncodeToString(data))
-	// for _, b := range data {
-	// 	fmt.Printf("0x%x,", b)
-	// }
 
 	for _, tc := range tests {
 		data, err := hex.DecodeString(tc.data)
