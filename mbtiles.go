@@ -21,6 +21,7 @@ type MBtiles struct {
 	pool      *sqlitex.Pool
 	format    TileFormat
 	timestamp time.Time
+	tilesize  uint32
 }
 
 // FindMBtiles recursively finds all mbtiles files within a given path.
@@ -78,7 +79,7 @@ func Open(path string) (*MBtiles, error) {
 		return nil, err
 	}
 
-	format, err := getTileFormat(con)
+	format, tilesize, err := getTileFormatAndSize(con)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +94,7 @@ func Open(path string) (*MBtiles, error) {
 		pool:      pool,
 		timestamp: stat.ModTime().Round(time.Second),
 		format:    format,
+		tilesize:  tilesize,
 	}
 
 	return db, nil
@@ -237,6 +239,12 @@ func (db *MBtiles) GetTileFormat() TileFormat {
 	return db.format
 }
 
+// GetTileSize returns the tile size in pixels of the mbtiles file, if detected.
+// Returns 0 if tile size is not detected.
+func (db *MBtiles) GetTileSize() uint32 {
+	return db.tilesize
+}
+
 // Timestamp returns the time stamp of the mbtiles file.
 func (db *MBtiles) GetTimestamp() time.Time {
 	return db.timestamp
@@ -309,7 +317,7 @@ func getTileFormat(con *sqlite.Conn) (TileFormat, error) {
 		return UNKNOWN, err
 	}
 
-	format, err := detectTileFormat(&magicWord)
+	format, err := detectTileFormat(magicWord)
 	if err != nil {
 		return UNKNOWN, err
 	}
@@ -320,6 +328,48 @@ func getTileFormat(con *sqlite.Conn) (TileFormat, error) {
 	}
 
 	return format, nil
+}
+
+// getTileFormatAndSize reads the first tile in the database to detect the tile
+// format and if PNG also the size.
+// See TileFormat for list of supported tile formats.
+func getTileFormatAndSize(con *sqlite.Conn) (TileFormat, uint32, error) {
+	var tilesize uint32 = 0 // not detected for all formats
+
+	query, _, err := con.PrepareTransient("select tile_data from tiles limit 1")
+	defer query.Finalize()
+
+	if err != nil {
+		return UNKNOWN, tilesize, err
+	}
+
+	hasRow, err := query.Step()
+	if err != nil {
+		return UNKNOWN, tilesize, err
+	}
+	if !hasRow {
+		return UNKNOWN, tilesize, errors.New("'tiles' table must be non-empty")
+	}
+
+	var tileData = make([]byte, query.ColumnLen(0))
+	query.ColumnBytes(0, tileData)
+
+	format, err := detectTileFormat(tileData)
+	if err != nil {
+		return UNKNOWN, tilesize, err
+	}
+
+	// GZIP masks PBF, which is only expected type for tiles in GZIP format
+	if format == GZIP {
+		format = PBF
+	}
+
+	tilesize, err = detectTileSize(format, tileData)
+	if err != nil {
+		return format, tilesize, err
+	}
+
+	return format, tilesize, nil
 }
 
 // parseFloats converts a commma-delimited string of floats to a slice of

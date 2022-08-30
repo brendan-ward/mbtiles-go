@@ -44,13 +44,14 @@ func Test_FindMBtiles_invalid_dir(t *testing.T) {
 
 func Test_OpenMBtiles(t *testing.T) {
 	tests := []struct {
-		path   string
-		format TileFormat
+		path     string
+		format   TileFormat
+		tilesize uint32
 	}{
-		{path: "geography-class-jpg.mbtiles", format: JPG},
-		{path: "geography-class-png.mbtiles", format: PNG},
-		{path: "geography-class-webp.mbtiles", format: WEBP},
-		{path: "world_cities.mbtiles", format: PBF},
+		{path: "geography-class-jpg.mbtiles", format: JPG, tilesize: 256},
+		{path: "geography-class-png.mbtiles", format: PNG, tilesize: 256},
+		{path: "geography-class-webp.mbtiles", format: WEBP, tilesize: 256},
+		{path: "world_cities.mbtiles", format: PBF, tilesize: 512},
 	}
 
 	for _, tc := range tests {
@@ -59,8 +60,14 @@ func Test_OpenMBtiles(t *testing.T) {
 			t.Error("Could not open:", tc.path)
 			continue
 		}
+
 		if db.GetTileFormat() != tc.format {
-			t.Error("Tile format does not match expected value for:", tc.path)
+			t.Error("Tile format", db.GetTileFormat(), "does not match expected value", tc.format, "for:", tc.path)
+			continue
+		}
+
+		if db.GetTileSize() != tc.tilesize {
+			t.Error("Tile size", db.GetTileSize(), "does not match expected value", tc.tilesize, "for:", tc.path)
 			continue
 		}
 	}
