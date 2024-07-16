@@ -114,28 +114,47 @@ func (db *MBtiles) ReadTile(z int64, x int64, y int64, data *[]byte) error {
 		return errors.New("cannot read tile from closed mbtiles database")
 	}
 
+	var err error
+	maxRetries := 3 // Maximum number of retries
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		err = db.readTileAttempt(z, x, y, data)
+		if err == nil {
+			return nil // Success, exit the loop
+		}
+		// Optionally, log the error and retry
+		fmt.Printf("Attempt %d failed: %v\n", attempt+1, err)
+		time.Sleep(time.Second * 2) // Wait for 2 seconds before retrying
+	}
+	return err // Return the last error encountered
+}
+
+// readTileAttempt tries to read a tile once
+func (db *MBtiles) readTileAttempt(z int64, x int64, y int64, data *[]byte) error {
 	con, err := db.getConnection(context.TODO())
+	if err != nil {
+		return err
+	}
 	defer db.closeConnection(con)
+
+	query, err := con.Prepare("select tile_data from tiles where zoom_level = $1 and tile_column = $2 and tile_row = $3")
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if resetErr := query.Reset(); resetErr != nil {
+			fmt.Printf("Resetting Query errored %v", resetErr)
+		}
+	}()
 
-	query, err := con.Prepare("select tile_data from tiles where zoom_level = $z and tile_column = $x and tile_row = $y")
-	if err != nil {
-		return err
-	}
-	defer query.Reset()
-
-	query.SetInt64("$z", z)
-	query.SetInt64("$x", x)
-	query.SetInt64("$y", y)
+	query.SetInt64("$1", z)
+	query.SetInt64("$2", x)
+	query.SetInt64("$3", y)
 
 	hasRow, err := query.Step()
 	if err != nil {
 		return err
 	}
 
-	// If this tile does not exist in the database, return empty bytes
 	if !hasRow {
 		*data = nil
 		return nil
@@ -144,10 +163,6 @@ func (db *MBtiles) ReadTile(z int64, x int64, y int64, data *[]byte) error {
 	var tileData = make([]byte, query.ColumnLen(0))
 	query.ColumnBytes(0, tileData)
 	*data = tileData[:]
-
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
