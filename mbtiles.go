@@ -136,7 +136,7 @@ func (db *MBtiles) readTileAttempt(z int64, x int64, y int64, data *[]byte) erro
 	}
 	defer db.closeConnection(con)
 
-	query, err := con.Prepare("select tile_data from tiles where zoom_level = $1 and tile_column = $2 and tile_row = $3")
+	query, err := con.Prepare("select tile_data from tiles where zoom_level = $z and tile_column = $x and tile_row = $y")
 	if err != nil {
 		return err
 	}
@@ -146,9 +146,9 @@ func (db *MBtiles) readTileAttempt(z int64, x int64, y int64, data *[]byte) erro
 		}
 	}()
 
-	query.SetInt64("$1", z)
-	query.SetInt64("$2", x)
-	query.SetInt64("$3", y)
+	query.SetInt64("$z", z)
+	query.SetInt64("$x", x)
+	query.SetInt64("$y", y)
 
 	hasRow, err := query.Step()
 	if err != nil {
