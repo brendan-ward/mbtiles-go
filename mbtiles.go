@@ -271,11 +271,10 @@ func (db *MBtiles) closeConnection(con *sqlite.Conn) {
 // present in the database
 func validateRequiredTables(con *sqlite.Conn) error {
 	query, _, err := con.PrepareTransient("SELECT count(*) as c FROM sqlite_master WHERE name in ('tiles', 'metadata')")
-	defer query.Finalize()
-
 	if err != nil {
 		return err
 	}
+	defer query.Finalize()
 
 	_, err = query.Step()
 	if err != nil {
@@ -292,11 +291,10 @@ func validateRequiredTables(con *sqlite.Conn) error {
 // See TileFormat for list of supported tile formats.
 func getTileFormat(con *sqlite.Conn) (TileFormat, error) {
 	query, _, err := con.PrepareTransient("select tile_data from tiles limit 1")
-	defer query.Finalize()
-
 	if err != nil {
 		return UNKNOWN, err
 	}
+	defer query.Finalize()
 
 	hasRow, err := query.Step()
 	if err != nil {
@@ -337,11 +335,10 @@ func getTileFormatAndSize(con *sqlite.Conn) (TileFormat, uint32, error) {
 	var tilesize uint32 = 0 // not detected for all formats
 
 	query, _, err := con.PrepareTransient("select tile_data from tiles limit 1")
-	defer query.Finalize()
-
 	if err != nil {
 		return UNKNOWN, tilesize, err
 	}
+	defer query.Finalize()
 
 	hasRow, err := query.Step()
 	if err != nil {
