@@ -30,8 +30,8 @@ func Test_DetectTileFormat(t *testing.T) {
 		},
 		{
 			// Alpha webp
-			// first 26 bytes of https://www.gstatic.com/webp/gallery3/1_webp_a.webp
-			data: "52494646ce46000057454250565038580a000000100000008f01", format: WEBP,
+			// first 27 bytes of https://www.gstatic.com/webp/gallery3/1_webp_a.webp
+			data: "52494646ce46000057454250565038580a000000100000008f0100", format: WEBP,
 		},
 		{
 			// PBF, first 10 bytes of tile 0/0/0 in world_cities.mbtiles
@@ -84,8 +84,8 @@ func Test_DetectTilesize(t *testing.T) {
 		},
 		{
 			// Alpha webp
-			// first 26 bytes of https://www.gstatic.com/webp/gallery3/1_webp_a.webp
-			format: WEBP, data: "52494646ce46000057454250565038580a000000100000008f01", tilesize: 400,
+			// first 27 bytes of https://www.gstatic.com/webp/gallery3/1_webp_a.webp
+			format: WEBP, data: "52494646ce46000057454250565038580a000000100000008f0100", tilesize: 400,
 		},
 		{
 			// PBF, first 10 bytes of tile 0/0/0 in world_cities.mbtiles

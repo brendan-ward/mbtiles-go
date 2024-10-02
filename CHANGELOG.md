@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.2.0 (in progress)
+## 0.2.0
+
+### Breaking changes
+
+-   requires Go 1.21+ (per Go version policy).
 
 ### API changes
 
