@@ -16,11 +16,6 @@ jobs:
     env:
       CGO_ENABLED: 1
     steps:
-      - name: Install GCC (MacOS)
-        if: startsWith(matrix.os, 'macos')
-        run: |
-          brew update
-          brew install gcc
       - name: Install GCC (Ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
         run: |
