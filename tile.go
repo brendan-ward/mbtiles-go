@@ -9,13 +9,14 @@ import (
 
 // TileFormat defines the tile format of tiles an mbtiles file.  Supported image
 // formats:
-//   * PNG
-//   * JPG
-//   * WEBP
-//   * PBF  (vector tile protocol buffers)
+//   - PNG
+//   - JPG
+//   - WEBP
+//   - PBF  (vector tile protocol buffers)
+//
 // Tiles may be compressed, in which case the type is one of:
-//   * GZIP (assumed to be GZIP'd PBF data)
-//   * ZLIB
+//   - GZIP (assumed to be GZIP'd PBF data)
+//   - ZLIB
 type TileFormat uint8
 
 // TileFormat enum values
@@ -133,7 +134,7 @@ func detectTileSize(format TileFormat, data []byte) (uint32, error) {
 
 		case bytes.HasPrefix(encType, []byte("VP8X")): // Alpha
 			// width is in 24 bits out of bytes 24-26
-			if len(data) < 26 {
+			if len(data) < 27 {
 				return 0, errors.New("insufficient length to detect webp image size")
 			}
 
