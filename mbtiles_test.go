@@ -1,6 +1,7 @@
 package mbtiles
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -73,6 +74,40 @@ func Test_OpenMBtiles(t *testing.T) {
 	}
 }
 
+func Test_OpenInMemoryMBtiles(t *testing.T) {
+	tests := []struct {
+		path     string
+		format   TileFormat
+		tilesize uint32
+	}{
+		{path: "geography-class-jpg.mbtiles", format: JPG, tilesize: 256},
+		{path: "geography-class-png.mbtiles", format: PNG, tilesize: 256},
+		{path: "geography-class-webp.mbtiles", format: WEBP, tilesize: 256},
+		{path: "world_cities.mbtiles", format: PBF, tilesize: 512},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	for _, tc := range tests {
+		db, err := OpenInMemory(ctx, "./testdata/"+tc.path)
+		if err != nil {
+			t.Error("Could not open:", tc.path)
+			continue
+		}
+
+		if db.GetTileFormat() != tc.format {
+			t.Error("Tile format", db.GetTileFormat(), "does not match expected value", tc.format, "for:", tc.path)
+			continue
+		}
+
+		if db.GetTileSize() != tc.tilesize {
+			t.Error("Tile size", db.GetTileSize(), "does not match expected value", tc.tilesize, "for:", tc.path)
+			continue
+		}
+	}
+}
+
 func Test_OpenMBtiles_invalid(t *testing.T) {
 	tests := []struct {
 		path string
@@ -86,6 +121,35 @@ func Test_OpenMBtiles_invalid(t *testing.T) {
 	}
 	for _, tc := range tests {
 		db, err := Open("./testdata/" + tc.path)
+		if err == nil {
+			t.Error("Invalid mbtiles did not raise error on open:", tc.path)
+			continue
+		}
+		if db != nil {
+			t.Error("Invalid mbtiles returned open handle:", tc.path)
+		}
+		if !strings.Contains(err.Error(), tc.err) {
+			t.Error("Invalid mbtiles did not raise expected error:", tc.path, ", instead raised: ", err)
+		}
+	}
+}
+
+func Test_OpenInMemoryMBtiles_invalid(t *testing.T) {
+	tests := []struct {
+		path string
+		err  string
+	}{
+		{path: "invalid.mbtiles", err: "missing one or more required tables: tiles, metadata"},
+		{path: "invalid-tile-format.mbtiles", err: "could not detect tile format"},
+		{path: "incomplete.mbtiles", err: "refusing to open mbtiles file with associated -journal file"},
+		{path: "does-not-exist.mbtiles", err: "path does not exist"},
+		{path: "not.mbtiles", err: "file is not a database"},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	for _, tc := range tests {
+		db, err := OpenInMemory(ctx, "./testdata/"+tc.path)
 		if err == nil {
 			t.Error("Invalid mbtiles did not raise error on open:", tc.path)
 			continue
