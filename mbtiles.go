@@ -68,16 +68,11 @@ func OpenInMemory(ctx context.Context, path string) (*MBtiles, error) {
 	defer srcCon.Close()
 
 	inMemoryPath := "file::memory:?mode=memory"
-	pool, err := sqlitex.Open(inMemoryPath, sqlite.SQLITE_OPEN_CREATE|sqlite.SQLITE_OPEN_READWRITE|sqlite.SQLITE_OPEN_URI|sqlite.SQLITE_OPEN_NOMUTEX, 10)
+	dstCon, err := sqlite.OpenConn(inMemoryPath, sqlite.SQLITE_OPEN_CREATE|sqlite.SQLITE_OPEN_READWRITE|sqlite.SQLITE_OPEN_URI)
 	if err != nil {
 		return nil, err
 	}
-
-	dstCon := pool.Get(ctx)
-	if dstCon == nil {
-		return nil, errors.New("destination pool returned nil connection")
-	}
-	defer pool.Put(dstCon)
+	defer dstCon.Close()
 
 	bkp, err := srcCon.BackupInit("", "", dstCon)
 	if err != nil {
@@ -87,6 +82,11 @@ func OpenInMemory(ctx context.Context, path string) (*MBtiles, error) {
 
 	if err := bkp.Step(-1); err != nil {
 		return nil, fmt.Errorf("transfer whole db: %w", err)
+	}
+
+	pool, err := sqlitex.Open(inMemoryPath, sqlite.SQLITE_OPEN_READONLY|sqlite.SQLITE_OPEN_URI|sqlite.SQLITE_OPEN_NOMUTEX, 10)
+	if err != nil {
+		return nil, err
 	}
 
 	return &MBtiles{
