@@ -50,7 +50,7 @@ func FindMBtiles(path string) ([]string, error) {
 // OpenInMemory opens an MBtiles file for reading, and validates that it has the correct
 // structure. Then it loads it to in-memory database. Use this function only with files small enough to be
 // loaded in-memory.
-func OpenInMemory(ctx context.Context, path string) (*MBtiles, error) {
+func OpenInMemory(path string) (*MBtiles, error) {
 	modTime, err := fileModTime(path)
 	if err != nil {
 		return nil, err

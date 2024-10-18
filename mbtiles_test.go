@@ -1,7 +1,6 @@
 package mbtiles
 
 import (
-	"context"
 	"os"
 	"strings"
 	"testing"
@@ -86,11 +85,8 @@ func Test_OpenInMemoryMBtiles(t *testing.T) {
 		{path: "world_cities.mbtiles", format: PBF, tilesize: 512},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	for _, tc := range tests {
-		db, err := OpenInMemory(ctx, "./testdata/"+tc.path)
+		db, err := OpenInMemory("./testdata/" + tc.path)
 		if err != nil {
 			t.Error("Could not open:", tc.path)
 			continue
@@ -146,10 +142,8 @@ func Test_OpenInMemoryMBtiles_invalid(t *testing.T) {
 		{path: "not.mbtiles", err: "file is not a database"},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 	for _, tc := range tests {
-		db, err := OpenInMemory(ctx, "./testdata/"+tc.path)
+		db, err := OpenInMemory("./testdata/" + tc.path)
 		if err == nil {
 			t.Error("Invalid mbtiles did not raise error on open:", tc.path)
 			continue
