@@ -51,21 +51,28 @@ func FindMBtiles(path string) ([]string, error) {
 // structure. Then it loads it to in-memory database. Use this function only with files small enough to be
 // loaded in-memory.
 func OpenInMemory(path string) (*MBtiles, error) {
-	modTime, err := fileModTime(path)
+	modTime, err := getModTime(path)
 	if err != nil {
 		return nil, err
 	}
 
-	format, tilesize, err := validateAndGetFormatAndSize(path)
-	if err != nil {
-		return nil, err
-	}
-
-	srcCon, err := sqlite.OpenConn(path, sqlite.SQLITE_OPEN_READONLY)
+	// open a single connection first while we are verifying the database
+	// since there are issues closing out a connection pool on error here
+	// we also use this connection to copy existing DB to in memory DB
+	srcCon, err := sqlite.OpenConn(path, sqlite.SQLITE_OPEN_READONLY|sqlite.SQLITE_OPEN_NOMUTEX)
 	if err != nil {
 		return nil, err
 	}
 	defer srcCon.Close()
+
+	err = validateRequiredTables(srcCon)
+	if err != nil {
+		return nil, err
+	}
+	format, tilesize, err := getTileFormatAndSize(srcCon)
+	if err != nil {
+		return nil, err
+	}
 
 	inMemoryPath := "file::memory:?mode=memory"
 	dstCon, err := sqlite.OpenConn(inMemoryPath, sqlite.SQLITE_OPEN_CREATE|sqlite.SQLITE_OPEN_READWRITE|sqlite.SQLITE_OPEN_URI)
@@ -101,12 +108,24 @@ func OpenInMemory(path string) (*MBtiles, error) {
 // Open opens an MBtiles file for reading, and validates that it has the correct
 // structure.
 func Open(path string) (*MBtiles, error) {
-	modTime, err := fileModTime(path)
+	modTime, err := getModTime(path)
 	if err != nil {
 		return nil, err
 	}
 
-	format, tilesize, err := validateAndGetFormatAndSize(path)
+	// open a single connection first while we are verifying the database
+	// since there are issues closing out a connection pool on error here
+	con, err := sqlite.OpenConn(path, sqlite.SQLITE_OPEN_READONLY|sqlite.SQLITE_OPEN_NOMUTEX)
+	if err != nil {
+		return nil, err
+	}
+	defer con.Close()
+
+	err = validateRequiredTables(con)
+	if err != nil {
+		return nil, err
+	}
+	format, tilesize, err := getTileFormatAndSize(con)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +146,7 @@ func Open(path string) (*MBtiles, error) {
 	return db, nil
 }
 
-func fileModTime(path string) (time.Time, error) {
+func getModTime(path string) (time.Time, error) {
 	stat, err := os.Stat(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -135,30 +154,11 @@ func fileModTime(path string) (time.Time, error) {
 		}
 		return time.Time{}, err
 	}
-	return stat.ModTime().Round(time.Second), nil
-}
-
-func validateAndGetFormatAndSize(path string) (TileFormat, uint32, error) {
 	// there must not be a corresponding *-journal file (tileset is still being created)
 	if _, err := os.Stat(path + "-journal"); err == nil {
-		return 0, 0, fmt.Errorf("refusing to open mbtiles file with associated -journal file (incomplete tileset)")
+		return time.Time{}, fmt.Errorf("refusing to open mbtiles file with associated -journal file (incomplete tileset)")
 	}
-
-	// open a single connection first while we are verifying the database
-	// since there are issues closing out a connection pool on error here
-	con, err := sqlite.OpenConn(path, sqlite.SQLITE_OPEN_READONLY|sqlite.SQLITE_OPEN_NOMUTEX)
-	if con != nil {
-		defer con.Close()
-	}
-	if err != nil {
-		return 0, 0, err
-	}
-
-	err = validateRequiredTables(con)
-	if err != nil {
-		return 0, 0, err
-	}
-	return getTileFormatAndSize(con)
+	return stat.ModTime().Round(time.Second), nil
 }
 
 // Close closes a MBtiles file
